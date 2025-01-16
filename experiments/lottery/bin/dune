@@ -1,0 +1,4 @@
+(executable
+ (public_name lottery)
+ (name main)
+ (libraries lottery))
