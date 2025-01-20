@@ -21,13 +21,13 @@ let rec two_or_four_aux lst size =
 let two_or_four lst =
   let size = two_or_four_aux lst 0
 in 
-if size = 2 || size = 4 then true else false
+size = 2 || size = 4 
 
 
 let two_first_elem_equal lst = 
   match lst with
   | [] -> false
-  | h :: h2 :: t -> if h = h2 then true else false
+  | h :: h2 :: t -> h = h2 
   | _ -> false
 
 let lst = [1; 3; 4; 5];;
@@ -224,3 +224,44 @@ let list_max_string lst =
   try string_of_int (list_max_exn lst) with 
   | Failure _ -> "emtpy"
 
+
+type tree = 
+  | Leaf
+  | Node of int * tree * tree
+
+type binary_val = 
+  | Empty 
+  | NotBST
+  | BST
+
+  let rec get_min tree min_value = 
+    match tree with
+    | Leaf -> min_value
+    | Node(value, left, right) -> 
+      let new_min = min value min_value in 
+      min (get_min left new_min) (get_min right new_min)
+    
+  let rec get_max tree max_value = 
+    match tree with
+    | Leaf -> max_value
+    | Node(value, left, right) -> 
+      let new_max = max value max_value in 
+      max (get_max left new_max) (get_max right new_max)
+
+  let bst_helper tree = 
+    match tree with
+    | Leaf -> Empty 
+    | Node(value, left, right) -> 
+      let left_max = get_max left min_int in 
+      let right_min = get_min right max_int in 
+      if left_max > value || right_min < value then
+        NotBST
+      else 
+        BST
+    
+    let is_bst tree = 
+      let res = bst_helper tree in 
+      match res with
+      | Empty -> false 
+      | NotBST -> false
+      | BST -> true

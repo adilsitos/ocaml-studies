@@ -282,3 +282,179 @@ It is made of a list of pairs (it just uses two types: lists and pairs xD)
 The lookup runtime is O(n) and the insert is O(1)
 
 Association lists are a very easy and useful implementation for small dictionaries
+
+## Algebraic data types 
+
+Variants are far more powerful than just enumerating a set of constants
+
+Variant types are sometimes called tagged unions. Every value of the type is from the set of values that is the union of all values from the underlying types that the constructor carries. For example, with the shape type, every value is tagged with either Point or Circle or Rect and carries a value from:
+
+    the set of all point values, unioned with
+
+    the set of all point * float values, unioned with
+
+    the set of all point * point values.
+
+Another name for these variant types is an algebraic data type. “Algebra” here refers to the fact that variant types contain both sum and product types.
+
+
+Variants thus provide a type-safe way of doing something that might before have seemed impossible. (check the file variants.ml, there exists an example of the sum of a list that can contain string and int)
+
+Do not use catch-all cases against variants, it can lead to bugs. It is always better
+to make the patterns against the values that exist inside the variant
+
+```
+
+type color = Blue | Red 
+
+let string_of_color = function 
+    | Blue -> "blue"
+    | _ -> "red" <---- DO NOT DO THIS!!!
+``` 
+
+
+### Recursive Variants 
+Variants type may mention their own name inside their own body. Like the following 
+example: 
+
+```
+
+type intlist = Nil | Cons of int * intlist
+
+let lst3 = Cons(3, Nil)
+let lst123  = Cons(1, Cons(2, lst3))
+
+```
+
+The Cons constructor carry a value that contains an intlist.
+Types may be mutually recursive if you use the `and` keyword
+
+```
+
+type node = {value: int;  next: mylist} 
+and mylist = Nil | Node of node
+
+```
+
+Any such mutual recursion must involve at least one variant or record type that 
+the recursion "goes through"
+
+Record types may also be recursive:
+
+```
+
+type node = {value: int; next: node}
+
+```
+
+### Parametrized Variants 
+
+Variant types may be parametrized on other types. Eg., the intlist 
+can generalized to privide lists over any type
+
+```
+
+type 'a mylist = Nil | Cons of 'a * 'a mylist
+
+let lst3 = Cons(3, Nil)
+let lst_hi = Cons("hi", Nil)
+
+```
+
+here the my list is a type constructor, not a type. Type constructors are 
+like funtions, but they map types to types instead of values to values. 
+
+Some functions that can be created over `'a mylist`
+
+```
+
+let rec length = function 
+    | Nil -> 0
+    | Cons (_, t) -> 1 + length t
+
+let empty = function 
+    | Nil -> true
+    | Cons _ -> false // here we could use a wildcard (_) but this can break the code
+                      // so I decided to map the cons pattern to false.
+```
+
+These functions are an example of a feature called parametric polymorphism. 
+The function doesn't care about the type `'a`
+But if you place a constraint on what type `'a` is, some polymorphism is gone.
+
+For example:
+
+```
+    let rec sum = function 
+        | Nil -> 0
+        | Cons (h, t) -> h + sum t // the + operator expects an int, so the compiler
+```
+
+It is also possible to have multiple type parameters for a parametrized type
+
+```
+type ('a, 'b) pair = {first: 'a; second: 'b}
+let x = {first=1; second="hi"}
+
+```
+
+
+### Polymorphic variants
+They are like variants, except:
+    - It is not necessary to declare their type or constructors before using them
+    - There is no name (can also be called as anonymous variants)
+    - It starts with a backquote character
+
+Example:
+
+```
+    let f = function
+        | 0 -> `Infinity
+        | 1 -> `Finite 1
+        | n -> `Finite (-n)
+
+```
+
+
+### Built-in Variants
+
+a list is defined as a variant:
+
+```
+    type 'a list = [] | ( :: ) of 'a * 'a list
+```
+
+an option is also defined as a parameterized variant:
+
+```
+    type 'a option = None | Some of 'a
+```
+
+## Exceptions
+To create an exception, use the same syntax for creating a variant value
+To raise an exception -> `raise e` 
+
+to catch exceptions ->
+
+```
+    try e with 
+    | p1 -> e1
+    | pn -> en
+```
+
+if e raises an exception, it will match against all provided patterns. If not, it 
+will just return e 
+
+The language specification does not stipulate what order the components of pairs should be evaluated in, so in the case of `(raise A, raise B)` the ocaml compilter evaluates from right to left, so B will be raise first. 
+
+In general if there are both exception and non-exception patterns, evaluation proceeds as follows: try evaluating e. If it produces an exception packet, use the exception patterns from the original match expression to handle that packet. If it doesn’t produce an exception packet but instead produces a non-exception value, use the non-exception patterns from the original match expression to match that value.
+
+```
+try 
+  match e with
+    | p1 -> e1
+    | p3 -> e3
+with
+  | p2 -> e2
+  | p4 -> e4
+```
